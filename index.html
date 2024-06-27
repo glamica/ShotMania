@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Tiro</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #333;
+            overflow: hidden;
+        }
+        header {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            box-sizing: border-box;
+        }
+        header label {
+            margin-right: 10px;
+        }
+        header input[type="file"] {
+            margin-right: 20px;
+        }
+        canvas {
+            background-color: #fff;
+            border: 1px solid #000;
+            flex-grow: 1;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="image-upload">
+            <label for="playerImageInput">Jogador:</label>
+            <input type="file" id="playerImageInput" accept="image/*">
+            <label for="enemyImageInput">Inimigo:</label>
+            <input type="file" id="enemyImageInput" accept="image/*">
+            <label for="healImageInput">Cura:</label>
+            <input type="file" id="healImageInput" accept="image/*">
+        </div>
+    </header>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('fileInput');
+        const playerImageInput = document.getElementById('playerImageInput');
+        const enemyImageInput = document.getElementById('enemyImageInput');
+        const healImageInput = document.getElementById('healImageInput');
+
+        let targets = [];
+        let enemies = [];
+        let heals = [];
+        let bullets = [];
+        let targetImage = new Image();
+        let playerImage = new Image();
+        let enemyImage = new Image();
+        let healImage = new Image();
+        let targetLoaded = false;
+        let playerImageLoaded = false;
+        let enemyImageLoaded = false;
+        let healImageLoaded = false;
+        let playerLives = 6;
+        let score = 0;
+
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            width: 50,
+            height: 50,
+            color: 'blue',
+            speed: 5 // Velocidade ajustada para um movimento mais suave
+        };
+
+        // Configurações do canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - document.querySelector('header').offsetHeight;
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 50;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Carregar imagens
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    targetImage.src = e.target.result;
+                    targetImage.onload = () => {
+                        targetLoaded = true;
+                        spawnTarget();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        playerImageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    playerImage.src = e.target.result;
+                    playerImage.onload = () => {
+                        playerImageLoaded = true;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        enemyImageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    enemyImage.src = e.target.result;
+                    enemyImage.onload = () => {
+                        enemyImageLoaded = true;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        healImageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    healImage.src = e.target.result;
+                    healImage.onload = () => {
+                        healImageLoaded = true;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Função para gerar alvos aleatórios
+        function spawnTarget() {
+            if (targetLoaded) {
+                const target = {
+                    x: Math.random() * (canvas.width - 50),
+                    y: Math.random() * (canvas.height - 50),
+                    width: 50,
+                    height: 50
+                };
+                targets.push(target);
+            }
+        }
+
+        // Função para gerar inimigos aleatórios
+        function spawnEnemy() {
+            const enemy = {
+                x: Math.random() * (canvas.width - 50),
+                y: -50,
+                width: 50,
+                height: 50,
+                speed: 2 + Math.random() * 3
+            };
+            enemies.push(enemy);
+        }
+
+        // Função para gerar itens de cura aleatórios
+        function spawnHeal() {
+            const heal = {
+                x: Math.random() * (canvas.width - 50),
+                y: -50,
+                width: 50,
+                height: 50,
+                speed: 2 + Math.random() * 3
+            };
+            heals.push(heal);
+        }
+
+        // Função para desenhar o jogador
+        function drawPlayer() {
+            if (playerImageLoaded) {
+                ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = player.color;
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+        }
+
+        // Função para desenhar os alvos, inimigos e itens de cura
+        function drawEntities() {
+            if (targetLoaded) {
+                targets.forEach(target => {
+                    ctx.drawImage(targetImage, target.x, target.y, target.width, target.height);
+                });
+            }
+
+            enemies.forEach(enemy => {
+                if (enemyImageLoaded) {
+                    ctx.drawImage(enemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                }
+            });
+
+            heals.forEach(heal => {
+                if (healImageLoaded) {
+                    ctx.drawImage(healImage, heal.x, heal.y, heal.width, heal.height);
+                } else {
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(heal.x, heal.y, heal.width, heal.height);
+                }
+            });
+        }
+
+        // Função para desenhar as balas
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.fillStyle = 'yellow';
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+
+        // Função para mover o jogador
+        function movePlayer() {
+            // Limpar a velocidade do jogador
+            player.speedX = 0;
+            player.speedY = 0;
+
+            // Definir a velocidade com base na tecla pressionada
+            if (keys.ArrowLeft) { player.speedX = -player.speed; }
+            if (keys.ArrowRight) { player.speedX = player.speed; }
+
+            // Mover o jogador e limitá-lo dentro do canvas
+            player.x += player.speedX;
+            player.y += player.speedY;
+
+            if (player.x < 0) {
+                player.x = 0;
+            }
+            if (player.x + player.width > canvas.width) {
+                player.x = canvas.width - player.width;
+            }
+        }
+
+        // Função para mover os inimigos e itens de cura
+        function moveEntities() {
+            enemies.forEach(enemy => {
+                enemy.y += enemy.speed;
+
+                // Checar se o inimigo atinge o jogador
+                if (
+                    enemy.y + enemy.height > player.y &&
+                    enemy.x < player.x + player.width &&
+                    enemy.x + enemy.width > player.x
+                ) {
+                    playerLives--;
+                    if (playerLives === 0) {
+                        alert('Game Over');
+                        document.location.reload();
+                    }
+                    enemy.y = -50;
+                    enemy.x = Math.random() * (canvas.width - 50);
+                }
+            });
+
+            enemies = enemies.filter(enemy => enemy.y < canvas.height);
+
+            heals.forEach(heal => {
+                heal.y += heal.speed;
+
+                // Checar se o jogador coleta o item de cura
+                if (
+                    heal.y + heal.height > player.y &&
+                    heal.x < player.x + player.width &&
+                    heal.x + heal.width > player.x
+                ) {
+                    playerLives = Math.min(playerLives + 1, 6);
+                    heal.y = -50;
+                    heal.x = Math.random() * (canvas.width - 50);
+                }
+            });
+
+            heals = heals.filter(heal => heal.y < canvas.height);
+        }
+
+        // Função para mover as balas
+        function moveBullets() {
+            bullets.forEach(bullet => {
+                bullet.y -= bullet.speed;
+            });
+
+            bullets = bullets.filter(bullet => bullet.y > 0);
+        }
+
+        // Função para verificar colisões entre balas e inimigos
+        function checkBulletCollisions() {
+            bullets.forEach((bullet, bulletIndex) => {
+                enemies.forEach((enemy, enemyIndex) => {
+                    if (
+                        bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y
+                    ) {
+                        score++;
+                        enemies.splice(enemyIndex, 1);
+                        bullets.splice(bulletIndex, 1);
+                    }
+                });
+            });
+        }
+
+        // Função para desenhar o HUD (vidas e pontuação)
+        function drawHUD() {
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Vidas: ${playerLives}`, 10, 30);
+            ctx.fillText(`Pontuação: ${score}`, 10, 60);
+        }
+
+        // Função de atualização do jogo
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            movePlayer();
+            drawPlayer();
+            drawEntities();
+            drawBullets();
+            moveEntities();
+            moveBullets();
+            checkBulletCollisions();
+            drawHUD();
+            requestAnimationFrame(updateGame);
+        }
+
+        // Função para gerar balas
+        function shootBullet() {
+            const bullet = {
+                x: player.x + player.width / 2 - 5,
+                y: player.y,
+                width: 5,
+                height: 10,
+                speed: 7
+            };
+            bullets.push(bullet);
+        }
+
+        // Controles do jogador
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+
+            if (e.key === ' ') {
+                shootBullet();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Loop do jogo
+        setInterval(spawnEnemy, 2000);
+        setInterval(spawnHeal, 10000);
+        updateGame();
+    </script>
+</body>
+</html>
