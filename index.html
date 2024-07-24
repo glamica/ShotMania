@@ -29,9 +29,7 @@
         header label {
             margin-right: 10px;
         }
-        header input[type="file"] {
-            margin-right: 20px;
-        }
+        
         canvas {
             background-color: #fff;
             border: 1px solid #000;
@@ -42,14 +40,24 @@
 </head>
 <body>
     <header>
-        <input type="file" id="fileInput" accept="image/*">
         <div class="image-upload">
-            <label for="playerImageInput">Jogador:</label>
-            <input type="file" id="playerImageInput" accept="image/*">
-            <label for="enemyImageInput">Inimigo:</label>
-            <input type="file" id="enemyImageInput" accept="image/*">
-            <label for="healImageInput">Cura:</label>
-            <input type="file" id="healImageInput" accept="image/*">
+            <div>
+                <label for="fileInput">Fundo:</label>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+            <div>
+                <label for="playerImageInput">Jogador:</label>
+                <input type="file" id="playerImageInput" accept="image/*">
+            </div>
+            <div>
+                <label for="enemyImageInput">Inimigo:</label>
+                <input type="file" id="enemyImageInput" accept="image/*">
+            </div>
+            <div>
+                <label for="healImageInput">Cura:</label>
+                <input type="file" id="healImageInput" accept="image/*">
+            </div>
+            
         </div>
     </header>
     <canvas id="gameCanvas"></canvas>
