@@ -76,11 +76,13 @@
         let bullets = [];
         let targetImage = new Image();
         let playerImage = new Image();
+        playerImage.src = 'img/jogador.png';
         let enemyImage = new Image();
+        enemyImage.src = "img/inimigo.avif"
         let healImage = new Image();
         let targetLoaded = false;
-        let playerImageLoaded = false;
-        let enemyImageLoaded = false;
+        let playerImageLoaded = true;
+        let enemyImageLoaded = true;
         let healImageLoaded = false;
         let playerLives = 6;
         let score = 0;
@@ -202,12 +204,7 @@
 
         // Função para desenhar o jogador
         function drawPlayer() {
-            if (playerImageLoaded) {
-                ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
-            } else {
-                ctx.fillStyle = player.color;
-                ctx.fillRect(player.x, player.y, player.width, player.height);
-            }
+            ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
         }
 
         // Função para desenhar os alvos, inimigos e itens de cura
